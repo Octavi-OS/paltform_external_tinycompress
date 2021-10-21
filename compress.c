@@ -572,7 +572,7 @@ int compress_set_gapless_metadata(struct compress *compress,
 	return 0;
 }
 
-#ifdef ENABLE_EXTENDED_COMPRESS_FORMAT
+#if defined(SNDRV_COMPRESS_SET_NEXT_TRACK_PARAM)
 int compress_set_next_track_param(struct compress *compress,
 	union snd_codec_options *codec_options)
 {
@@ -581,6 +581,12 @@ int compress_set_next_track_param(struct compress *compress,
 
 	if (ioctl(compress->fd, SNDRV_COMPRESS_SET_NEXT_TRACK_PARAM, codec_options))
 		return oops(compress, errno, "cannot set next track params\n");
+	return 0;
+}
+#else
+int compress_set_next_track_param(struct compress *compress __unused,
+	union snd_codec_options *codec_options __unused)
+{
 	return 0;
 }
 #endif
@@ -677,3 +683,36 @@ int compress_set_metadata(struct compress *compress,
 	return 0;
 }
 #endif
+
+int compress_get_metadata(struct compress *compress,
+		struct snd_compr_metadata *mdata) {
+	int version;
+	if (!is_compress_ready(compress))
+		return oops(compress, ENODEV, "device not ready");
+
+	version = get_compress_version(compress);
+	if (version <= 0)
+		return -1;
+
+	if (ioctl(compress->fd, SNDRV_COMPRESS_GET_METADATA, mdata)) {
+		return oops(compress, errno, "can't get metadata for stream\n");
+	}
+	return 0;
+}
+
+int compress_set_metadata(struct compress *compress,
+		struct snd_compr_metadata *mdata) {
+
+	int version;
+	if (!is_compress_ready(compress))
+		return oops(compress, ENODEV, "device not ready");
+
+	version = get_compress_version(compress);
+	if (version <= 0)
+		return -1;
+
+	if (ioctl(compress->fd, SNDRV_COMPRESS_SET_METADATA, mdata)) {
+		return oops(compress, errno, "can't set metadata for stream\n");
+	}
+	return 0;
+}
